@@ -1,0 +1,73 @@
+using UnityEngine;
+using System.Collections.Generic;
+using System;
+using Unity.VisualScripting;
+
+public class MapVisualization : MonoBehaviour
+{
+    [SerializeField] private int resolution = 64;
+    [SerializeField] private float distance = 16f;
+    [SerializeField] private Navigation navigation;
+    [SerializeField] private Transform botTransform;
+    [SerializeField] private Color hitColor;
+    [SerializeField] private Color emptyColor;
+
+    private Texture2D texture;
+    private Color32[] pixelBuffer;
+    private Material targetMaterial;
+    
+
+    void Start()
+    {
+        // 1. Create the texture
+        texture = new Texture2D(resolution, resolution, TextureFormat.RGBA32, false);
+        texture.filterMode = FilterMode.Point; // Prevents blurry edges between cells
+        texture.wrapMode = TextureWrapMode.Clamp;
+
+        pixelBuffer = new Color32[resolution * resolution];
+
+        targetMaterial = GetComponent<Renderer>().material;
+        targetMaterial.mainTexture = texture;
+    }
+
+    // Update is called once per frame
+    void LateUpdate()
+    {
+        UpdateMap();
+    }
+
+
+    void UpdateMap()
+    {
+        /// Take the position of the bot as the middle
+        /// Then take the positions of the dictionary
+        /// Filter the positions to the ones that are in range of the bot
+        /// Find distance of each points from the bot
+        /// Go through each point and draw them using the following position:
+        /// d_x = cell.x - bot.x, d_y = cell.y - bot.y
+        /// x = floor(d_x / cellSize) + resolution / 2, y = ceil(d_y / cellSize) + resolution / 2
+        
+        float cellSize = distance * 2f / resolution;
+        Dictionary<Vector2, cellStatus> hitCells = navigation.GetHitCells();
+        Vector2 bot = new Vector2(botTransform.position.x, botTransform.position.z);
+
+        System.Array.Fill(pixelBuffer, emptyColor);
+
+        foreach (Vector2 cell in hitCells.Keys)
+        {
+            float d_x = cell.x - bot.x;
+            float d_y = cell.y - bot.y;
+            int x = (int)(d_x / cellSize) + resolution / 2;
+            int y = (int)(d_y / cellSize) + resolution / 2;
+
+            if (x >= 0 && x < resolution && y >= 0 && y < resolution)
+            {
+                int index = y * resolution + x;
+                pixelBuffer[index] = hitColor;
+            }
+        }
+
+        texture.SetPixels32(pixelBuffer);
+        texture.Apply();
+    }
+}
