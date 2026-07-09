@@ -17,7 +17,7 @@ public class Navigation : MonoBehaviour
     [Header("Mapping Properties")]
     [SerializeField] private float cellSize;
     [SerializeField] private Vector2 botDimentions; // For marking unreachable points
-    private Dictionary<Vector2, cellStatus> hitCells = new Dictionary<Vector2, cellStatus>(100000) {}; // Cell position is top left corner
+    private Dictionary<Vector2, CellStatus> hitCells = new Dictionary<Vector2, CellStatus>(100000) {}; // Cell position is top left corner
 
     [Header("Navigation")]
     [SerializeField] private Transform targetTransform;
@@ -55,7 +55,7 @@ public class Navigation : MonoBehaviour
         {
             if (point.w == 1) 
             {
-                //Debug.DrawRay(lidar.transform.position, new Vector3(point.x, point.y, point.z) - lidar.transform.position, Color.red); // Draw rays for each hit point
+                Debug.DrawRay(lidar.transform.position, new Vector3(point.x, point.y, point.z) - lidar.transform.position, Color.red); // Draw rays for each hit point
                 SetHitCell(new Vector2(point.x, point.z));
             }
         }
@@ -71,7 +71,7 @@ public class Navigation : MonoBehaviour
         if (hitCells.ContainsKey(hitVec))
             return;
 
-        hitCells[hitVec] = cellStatus.Hit;
+        hitCells[hitVec] = CellStatus.Wall;
 
         // // mark radius as unreachable
         // float r = Mathf.Max(botDimentions.x, botDimentions.y);
@@ -82,17 +82,17 @@ public class Navigation : MonoBehaviour
         //     {
         //         Vector2 vec = new Vector2(x, y);
         //         if (!hitCells.ContainsKey(vec)) // TODO: this would not allow for remapping, should make it a little more dynamic
-        //             hitCells[new Vector2(x, y)] = cellStatus.Unreachable;
+        //             hitCells[new Vector2(x, y)] = CellStatus.Unreachable;
         //     }
         // }
     }
 
-    public cellStatus GetCellStatus(Vector2 pos)
+    public CellStatus GetCellStatus(Vector2 pos)
     {
         return hitCells[new Vector2(Mathf.Floor(pos.x / cellSize) * cellSize, Mathf.Ceil(pos.y / cellSize) * cellSize)];
     }
 
-    public Dictionary<Vector2, cellStatus> GetHitCells()
+    public Dictionary<Vector2, CellStatus> GetHitCells()
     {
         return hitCells;
     }

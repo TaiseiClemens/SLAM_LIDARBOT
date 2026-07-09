@@ -1,6 +1,7 @@
-public enum cellStatus
+public enum CellStatus
 {
-    Hit,
+    Wall,
+    Empty,
     Unreachable,
     Reachable
 }
