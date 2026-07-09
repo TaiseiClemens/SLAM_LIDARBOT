@@ -18,6 +18,7 @@ public class Navigation : MonoBehaviour
     [SerializeField] private float cellSize;
     [SerializeField] private Vector2 botDimentions; // For marking unreachable points
     private Dictionary<Vector2, CellStatus> hitCells = new Dictionary<Vector2, CellStatus>(100000) {}; // Cell position is top left corner
+    private ChunkManager chunkManager;
 
     [Header("Navigation")]
     [SerializeField] private Transform targetTransform;
@@ -28,6 +29,7 @@ public class Navigation : MonoBehaviour
     void Start()
     {
         StartCoroutine(MainLoop());
+        chunkManager = new ChunkManager(cellSize);
     }
 
     IEnumerator MainLoop()
@@ -64,37 +66,20 @@ public class Navigation : MonoBehaviour
     /// --------------------------------------------------
     /// Mapping Functions
     /// --------------------------------------------------
+
     void SetHitCell(Vector2 hitPos)
     {
-        Vector2 hitVec = new Vector2(Mathf.Floor(hitPos.x / cellSize) * cellSize, Mathf.Ceil(hitPos.y / cellSize) * cellSize);
-
-        if (hitCells.ContainsKey(hitVec))
-            return;
-
-        hitCells[hitVec] = CellStatus.Wall;
-
-        // // mark radius as unreachable
-        // float r = Mathf.Max(botDimentions.x, botDimentions.y);
-
-        // for (float x = hitPos.x - r; x < hitPos.x + r; x += cellSize)
-        // {
-        //     for (float y = hitPos.y - r; y < hitPos.y + r; y += cellSize)
-        //     {
-        //         Vector2 vec = new Vector2(x, y);
-        //         if (!hitCells.ContainsKey(vec)) // TODO: this would not allow for remapping, should make it a little more dynamic
-        //             hitCells[new Vector2(x, y)] = CellStatus.Unreachable;
-        //     }
-        // }
+        chunkManager.SetCellStatusAtWorldPosition(hitPos, CellStatus.Wall);
     }
 
     public CellStatus GetCellStatus(Vector2 pos)
     {
-        return hitCells[new Vector2(Mathf.Floor(pos.x / cellSize) * cellSize, Mathf.Ceil(pos.y / cellSize) * cellSize)];
+        return chunkManager.GetCellStatusAtWorldPosition(pos);
     }
 
-    public Dictionary<Vector2, CellStatus> GetHitCells()
+    public ChunkManager getChunkManager()
     {
-        return hitCells;
+        return chunkManager;
     }
 
     /// --------------------------------------------------
@@ -135,5 +120,13 @@ public class Navigation : MonoBehaviour
         }
         
     }
+    
+    /// --------------------------------------------------
+    /// Pathfinding
+    /// --------------------------------------------------
 
+    Vector2[] ShortestPath()
+    {
+        return null;   
+    }
 }

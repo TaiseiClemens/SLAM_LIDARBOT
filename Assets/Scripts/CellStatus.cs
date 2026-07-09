@@ -1,7 +1,7 @@
 public enum CellStatus
 {
+    Unexplored,
     Wall,
     Empty,
-    Unreachable,
-    Unexplored
+    Unreachable
 }

@@ -48,24 +48,46 @@ public class MapVisualization : MonoBehaviour
         /// x = floor(d_x / cellSize) + resolution / 2, y = ceil(d_y / cellSize) + resolution / 2
         
         float cellSize = distance * 2f / resolution;
-        Dictionary<Vector2, CellStatus> hitCells = navigation.GetHitCells();
+        //Dictionary<Vector2, CellStatus> hitCells = navigation.GetHitCells();
         Vector2 bot = new Vector2(botTransform.position.x, botTransform.position.z);
+
+        ChunkManager chunkManager = navigation.getChunkManager();
 
         System.Array.Fill(pixelBuffer, emptyColor);
 
-        foreach (Vector2 cell in hitCells.Keys)
-        {
-            float d_x = cell.x - bot.x;
-            float d_y = cell.y - bot.y;
-            int x = (int)(d_x / cellSize) + resolution / 2;
-            int y = (int)(d_y / cellSize) + resolution / 2;
 
-            if (x >= 0 && x < resolution && y >= 0 && y < resolution)
+        for (int i = 0; i < resolution; i++)
+        {
+            for (int j = 0; j < resolution; j++)
             {
-                int index = y * resolution + x;
-                pixelBuffer[index] = hitColor;
+                float worldPosX = bot.x - resolution * cellSize / 2 + i * cellSize;
+                float worldPosY = bot.y + resolution * cellSize / 2 - j * cellSize;
+
+                CellStatus cellStatus = chunkManager.GetCellStatusAtWorldPosition(new Vector2(worldPosX, worldPosY));
+
+                int index = resolution * resolution - j * resolution + i;
+
+                if (cellStatus == CellStatus.Wall)
+                    pixelBuffer[index] = hitColor;
             }
         }
+
+        // foreach (Vector2 cell in hitCells.Keys)
+        // {
+
+        //     CellStatus cellStatus = chunkManager.GetCellStatusAtWorldPosition();
+
+        //     float d_x = cell.x - bot.x;
+        //     float d_y = cell.y - bot.y;
+        //     int x = (int)(d_x / cellSize) + resolution / 2;
+        //     int y = (int)(d_y / cellSize) + resolution / 2;
+
+        //     if (x >= 0 && x < resolution && y >= 0 && y < resolution)
+        //     {
+        //         int index = y * resolution + x;
+        //         pixelBuffer[index] = hitColor;
+        //     }
+        // }
 
         texture.SetPixels32(pixelBuffer);
         texture.Apply();
