@@ -25,7 +25,7 @@ public class GridChunk
 
         int bitPos = localX * 2;
 
-        ulong cellBits = (ulong)cellStatus & 3UL; // Only works if there are 4 possible states in cell status.
+        ulong cellBits = (ulong)cellStatus & 3UL;
 
         _bitmask[localY] &= ~(3UL << bitPos); // Clears the desired bits
         _bitmask[localY] |= cellBits << bitPos; // Adds in the new status
