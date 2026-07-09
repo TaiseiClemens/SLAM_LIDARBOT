@@ -48,7 +48,7 @@ public class MapVisualization : MonoBehaviour
         /// x = floor(d_x / cellSize) + resolution / 2, y = ceil(d_y / cellSize) + resolution / 2
         
         float cellSize = distance * 2f / resolution;
-        Dictionary<Vector2, cellStatus> hitCells = navigation.GetHitCells();
+        Dictionary<Vector2, CellStatus> hitCells = navigation.GetHitCells();
         Vector2 bot = new Vector2(botTransform.position.x, botTransform.position.z);
 
         System.Array.Fill(pixelBuffer, emptyColor);
