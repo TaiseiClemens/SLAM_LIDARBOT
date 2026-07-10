@@ -16,6 +16,7 @@ public class MapVisualization : MonoBehaviour
     [SerializeField] private Color targetColor;
     [SerializeField] private Color botColor;
     [SerializeField] private Color unreachableColor;
+    [SerializeField] private Color bufferColor;
 
     private Texture2D texture;
     private Color32[] pixelBuffer;
@@ -38,10 +39,10 @@ public class MapVisualization : MonoBehaviour
     // Update is called once per frame
     void LateUpdate()
     {
-        //if (navigation.ShortestPath() != null)
-        UpdateMapWithPath();
-        //else 
-        //    UpdateMap();
+        if (navigation.ShortestPath() != null)
+            UpdateMapWithPath();
+        else 
+            UpdateMap();
     }
 
 
@@ -128,6 +129,8 @@ public class MapVisualization : MonoBehaviour
                     pixelBuffer[index] = hitColor;
                 else if (cellStatus == CellStatus.Unreachable)
                     pixelBuffer[index] = unreachableColor;
+                else if (cellStatus == CellStatus.BufferZone)
+                    pixelBuffer[index] = bufferColor;
             }
         }
 

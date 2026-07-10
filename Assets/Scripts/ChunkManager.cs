@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Unity.Mathematics;
@@ -35,7 +36,7 @@ public class ChunkManager
         chunk.SetValue(localCellX, localCellY, status);
     }
 
-    public void SetCellWallAtWorldPosition(Vector2 worldPos, float radius)
+    public void SetCellWallAtWorldPosition(Vector2 worldPos, float radius, float bufferSize)
     {
         /// width of square will be r * 2 at positions worldPos.x - r and worldPos.x + r
         /// then get number of cells within by deviding r * 2 by cellSize
@@ -43,17 +44,30 @@ public class ChunkManager
          
         SetCellStatusAtWorldPosition(worldPos, CellStatus.Wall);
 
-        float startX = worldPos.x - radius;
-        float startY = worldPos.y + radius; 
+        int bufferRadius = Mathf.FloorToInt(bufferSize / _cellSize);
+
+        float startX = worldPos.x - radius - bufferSize;
+        float startY = worldPos.y + radius + bufferSize; 
 
         int numCells = Mathf.FloorToInt(radius * 2 / _cellSize);
 
-        for (int i = 0; i < numCells; i++)
+        for (int i = 0; i < numCells + bufferRadius * 2; i++)
         {
-            for (int j = 0; j < numCells; j++)
+            for (int j = 0; j < numCells  + bufferRadius * 2; j++)
             {
-                if (GetCellStatusAtWorldPosition(new Vector2(startX + i * _cellSize, startY - j * _cellSize)) != CellStatus.Wall)
-                    SetCellStatusAtWorldPosition(new Vector2(startX + i * _cellSize, startY - j * _cellSize), CellStatus.Unreachable);
+                if (i > bufferRadius && i < numCells + bufferRadius && 
+                    j > bufferRadius && j < numCells + bufferRadius)
+                {
+                    if (GetCellStatusAtWorldPosition(new Vector2(startX + i * _cellSize, startY - j * _cellSize)) != CellStatus.Wall)
+                        SetCellStatusAtWorldPosition(new Vector2(startX + i * _cellSize, startY - j * _cellSize), CellStatus.Unreachable);
+                }
+                else
+                {
+                    if (GetCellStatusAtWorldPosition(new Vector2(startX + i * _cellSize, startY - j * _cellSize)) != CellStatus.Wall &&
+                        GetCellStatusAtWorldPosition(new Vector2(startX + i * _cellSize, startY - j * _cellSize)) != CellStatus.Unreachable)
+                        SetCellStatusAtWorldPosition(new Vector2(startX + i * _cellSize, startY - j * _cellSize), CellStatus.BufferZone);
+                }
+                
             }
         }
     }
