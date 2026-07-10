@@ -35,6 +35,28 @@ public class ChunkManager
         chunk.SetValue(localCellX, localCellY, status);
     }
 
+    public void SetCellWallAtWorldPosition(Vector2 worldPos, float radius)
+    {
+        /// width of square will be r * 2 at positions worldPos.x - r and worldPos.x + r
+        /// then get number of cells within by deviding r * 2 by cellSize
+        /// use a nested for loop to loop through ever cell within that area
+         
+        float startX = worldPos.x - radius;
+        float startY = worldPos.y + radius; 
+
+        int numCells = Mathf.FloorToInt(radius * 2 / _cellSize);
+
+        for (int i = 0; i < numCells; i++)
+        {
+            for (int j = 0; j < numCells; j++)
+            {
+                if (GetCellStatusAtWorldPosition(worldPos) != CellStatus.Wall)
+                    SetCellStatusAtWorldPosition(new Vector2(startX + i * _cellSize, startY - j * _cellSize), CellStatus.Unreachable);
+            }
+        }
+    }
+
+    
     public CellStatus GetCellStatusAtWorldPosition(Vector2 worldPos)
     {
         int globalCellX = Mathf.FloorToInt(worldPos.x / _cellSize);

@@ -14,6 +14,7 @@ public class MapVisualization : MonoBehaviour
     [SerializeField] private Color emptyColor;
     [SerializeField] private Color pathColor;
     [SerializeField] private Color targetColor;
+    [SerializeField] private Color unreachableColor;
 
     private Texture2D texture;
     private Color32[] pixelBuffer;
@@ -124,6 +125,8 @@ public class MapVisualization : MonoBehaviour
 
                 if (cellStatus == CellStatus.Wall)
                     pixelBuffer[index] = hitColor;
+                else if (cellStatus == CellStatus.Unreachable)
+                    pixelBuffer[index] = unreachableColor;
             }
         }
 

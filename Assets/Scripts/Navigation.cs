@@ -70,7 +70,8 @@ public class Navigation : MonoBehaviour
 
     void SetHitCell(Vector2 hitPos)
     {
-        chunkManager.SetCellStatusAtWorldPosition(hitPos, CellStatus.Wall);
+        //chunkManager.SetCellStatusAtWorldPosition(hitPos, CellStatus.Wall);
+        chunkManager.SetCellWallAtWorldPosition(hitPos, botDimentions.x + botDimentions.y);
     }
 
     public CellStatus GetCellStatus(Vector2 pos)
@@ -158,8 +159,6 @@ public class Navigation : MonoBehaviour
 
     public PathNode[] ShortestPath()
     {
-
-
         int searchesLeft = 10000;
 
         Dictionary<PathNode, PathNode> path = new Dictionary<PathNode, PathNode>(); 
@@ -196,7 +195,9 @@ public class Navigation : MonoBehaviour
             foreach (PathNode neighbor in GetNeighbors(current))
             {
                 //Debug.Log("Neighbor Position: " + neighbor.X + ", " + neighbor.Y);
-                if (!visited.ContainsKey((neighbor.X, neighbor.Y)))
+                if (!visited.ContainsKey((neighbor.X, neighbor.Y)) // if has not visited
+                    && chunkManager.GetCellStatusAtCellPosition(neighbor.X, neighbor.Y) != CellStatus.Unreachable
+                    && chunkManager.GetCellStatusAtCellPosition(neighbor.X, neighbor.Y) != CellStatus.Wall)
                 {
                     visited[(neighbor.X, neighbor.Y)] = true;
                     path[neighbor] = current;  // Set neighbor parent to self
