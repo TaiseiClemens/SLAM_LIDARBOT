@@ -11,6 +11,7 @@ public class MapVisualization : MonoBehaviour
     [SerializeField] private Transform botTransform;
     [SerializeField] private Color hitColor;
     [SerializeField] private Color emptyColor;
+    [SerializeField] private Color pathColor;
 
     private Texture2D texture;
     private Color32[] pixelBuffer;
@@ -33,7 +34,10 @@ public class MapVisualization : MonoBehaviour
     // Update is called once per frame
     void LateUpdate()
     {
-        UpdateMap();
+        //if (navigation.ShortestPath() != null)
+        UpdateMapWithPath();
+        //else 
+        //    UpdateMap();
     }
 
 
@@ -89,6 +93,55 @@ public class MapVisualization : MonoBehaviour
         //     }
         // }
 
+        texture.SetPixels32(pixelBuffer);
+        texture.Apply();
+    }
+    
+    void UpdateMapWithPath()
+    {
+        float cellSize = distance * 2f / resolution;
+        //Dictionary<Vector2, CellStatus> hitCells = navigation.GetHitCells();
+        Vector2 bot = new Vector2(botTransform.position.x, botTransform.position.z);
+
+        ChunkManager chunkManager = navigation.getChunkManager();
+        PathNode[] nodes = navigation.ShortestPath();
+
+        System.Array.Fill(pixelBuffer, emptyColor);
+
+        
+        for (int i = 0; i < resolution; i++)
+        {
+            for (int j = 0; j < resolution; j++)
+            {
+                float worldPosX = bot.x - resolution * cellSize / 2 + i * cellSize;
+                float worldPosY = bot.y + resolution * cellSize / 2 - j * cellSize;
+
+                CellStatus cellStatus = chunkManager.GetCellStatusAtWorldPosition(new Vector2(worldPosX, worldPosY));
+
+                int index = resolution * resolution - j * resolution + i;
+
+                if (cellStatus == CellStatus.Wall)
+                    pixelBuffer[index] = hitColor;
+            }
+        }
+
+        foreach (PathNode node in nodes)
+        {
+            
+            CellStatus cellStatus = chunkManager.GetCellStatusAtWorldPosition(new Vector2(node.X, node.Y));
+
+            float d_x = node.X - bot.x;
+            float d_y = node.Y - bot.y;
+            int x = (int)(d_x / cellSize) + resolution / 2;
+            int y = (int)(d_y / cellSize) + resolution / 2;
+
+            if (x >= 0 && x < resolution && y >= 0 && y < resolution)
+            {
+                int index = y * resolution + x;
+                pixelBuffer[index] = pathColor;
+            }
+
+        }
         texture.SetPixels32(pixelBuffer);
         texture.Apply();
     }

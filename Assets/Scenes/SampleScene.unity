@@ -1030,6 +1030,7 @@ MonoBehaviour:
   botTransform: {fileID: 1341047117}
   hitColor: {r: 1, g: 0, b: 0, a: 0}
   emptyColor: {r: 0, g: 0, b: 0, a: 0}
+  pathColor: {r: 0, g: 0.027116776, b: 1, a: 0}
 --- !u!64 &563839526
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -2188,7 +2189,7 @@ MonoBehaviour:
   motorDriver: {fileID: 1341047119}
   lidar: {fileID: 1341047120}
   lidarPointCloud: {fileID: 923005494}
-  cellSize: 0.5
+  cellSize: 0.25
   botDimentions: {x: 0.5, y: 0.75}
   targetTransform: {fileID: 1682002238}
 --- !u!114 &1341047119

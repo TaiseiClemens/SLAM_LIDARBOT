@@ -52,4 +52,21 @@ public class ChunkManager
 
         return CellStatus.Unexplored;
     }
+
+    public CellStatus GetCellStatusAtCellPosition(int X, int Y)
+    {
+        int chunkX = Mathf.FloorToInt((float)X / GridChunk.chunkSize);
+        int chunkY = Mathf.FloorToInt((float)Y / GridChunk.chunkSize);
+        ChunkKey key = new ChunkKey(chunkX, chunkY);
+
+        if (_chunks.TryGetValue(key, out GridChunk chunk))
+        {
+            int localCellX = X - (chunkX * GridChunk.chunkSize);
+            int localCellY = Y - (chunkY * GridChunk.chunkSize);
+            return chunk.GetValue(localCellX, localCellY);
+        }
+
+        return CellStatus.Unexplored;
+    }
+
 }

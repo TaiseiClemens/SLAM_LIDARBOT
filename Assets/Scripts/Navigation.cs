@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Unity.VisualScripting;
 using System;
 using UnityEngine.InputSystem.Controls;
+using System.Xml.Schema;
 
 
 public class Navigation : MonoBehaviour
@@ -125,8 +126,96 @@ public class Navigation : MonoBehaviour
     /// Pathfinding
     /// --------------------------------------------------
 
-    Vector2[] ShortestPath()
+    
+
+    PathNode[] RetracePath(PathNode startPathNode, PathNode targetPathNode, Dictionary<PathNode, PathNode> pathDict)
     {
+        Debug.Log("Found Path!");
+
+        List<PathNode> path = new List<PathNode>();
+
+        PathNode currentPathNode = targetPathNode;
+
+        path.Add(currentPathNode);
+
+        while (!currentPathNode.Equal(startPathNode))
+        {
+            path.Insert(0, pathDict[currentPathNode]);
+            currentPathNode = pathDict[currentPathNode];
+        }
+
+        return path.ToArray();
+    }
+
+    PathNode[] GetNeighbors(PathNode PathNode)
+    {
+        return new PathNode[]
+        {
+            new PathNode(PathNode.X - 1, PathNode.Y, PathNode.Distance + 1),
+            new PathNode(PathNode.X + 1, PathNode.Y, PathNode.Distance + 1),
+            new PathNode(PathNode.X, PathNode.Y + 1, PathNode.Distance + 1),
+            new PathNode(PathNode.X, PathNode.Y - 1, PathNode.Distance + 1)
+        };
+    }
+
+    public PathNode[] ShortestPath()
+    {
+
+
+        int searchesLeft = 10000;
+
+        Dictionary<PathNode, PathNode> path = new Dictionary<PathNode, PathNode>(); 
+        Queue<PathNode> queue = new Queue<PathNode>();
+        Dictionary<(int x, int y), bool> visited = new Dictionary<(int x, int y), bool>(); //bool[,] visited = new bool[1000, 1000]; // TODO: Add reallocation
+
+        PathNode startPathNode = new PathNode(Mathf.FloorToInt(transform.position.x / cellSize), Mathf.FloorToInt(transform.position.y / cellSize), 0);
+
+        PathNode targetPathNode = new PathNode(Mathf.FloorToInt(targetTransform.position.x / cellSize), Mathf.FloorToInt(targetTransform.position.y / cellSize), 0);
+
+        Debug.Log("Start Pos: " + startPathNode.X + ", " + startPathNode.Y);
+        Debug.Log("Target Pos: " + targetPathNode.X + ", " + targetPathNode.Y);
+
+        // Make nodes relative to global coordinates
+
+        queue.Enqueue(startPathNode);
+
+        while (queue.Count > 0 && searchesLeft > 0)
+        {
+            searchesLeft--;
+            PathNode current = queue.Dequeue();
+
+            visited[(current.X, current.Y)] = true;
+
+
+            //Debug.Log("Intermediate Position: " + current.X + ", " + current.Y);
+
+            if (current.Equal(targetPathNode))
+            {
+                PathNode[] finalPath = RetracePath(startPathNode, targetPathNode, path);
+                return finalPath;
+            }
+
+            foreach (PathNode neighbor in GetNeighbors(current))
+            {
+                //Debug.Log("Neighbor Position: " + neighbor.X + ", " + neighbor.Y);
+                if (!visited.ContainsKey((neighbor.X, neighbor.Y)))
+                {
+                    visited[(neighbor.X, neighbor.Y)] = true;
+                    path[neighbor] = current;  // Set neighbor parent to self
+                    queue.Enqueue(neighbor); 
+                }
+            }
+        }
+
+        if (queue.Count <= 0)
+        {
+            Debug.LogError("Did not find a path");
+        } 
+        else
+        {
+            Debug.LogError("Took too long to find path");
+        }
+
         return null;   
     }
 }
