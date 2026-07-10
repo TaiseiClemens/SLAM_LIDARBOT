@@ -23,13 +23,13 @@ public class Navigation : MonoBehaviour
 
     [Header("Navigation")]
     [SerializeField] private Transform targetTransform;
-    private Vector2 target;
+    //private Vector2 target;
 
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        StartCoroutine(MainLoop());
+        //StartCoroutine(MainLoop());
         chunkManager = new ChunkManager(cellSize);
     }
 
@@ -38,7 +38,9 @@ public class Navigation : MonoBehaviour
         while (true)
         {
 
-            FollowTarget(1f, 0.25f);
+            //FollowTarget(1f, 0.25f, target);
+
+            FollowPath();
 
             //yield return new WaitForSeconds(1f);
             yield return null;
@@ -47,7 +49,8 @@ public class Navigation : MonoBehaviour
 
     void Update()
     {
-        target = new Vector2(targetTransform.position.x - transform.position.x, targetTransform.position.z - transform.position.z);
+        FollowPath();
+        //target = new Vector2(targetTransform.position.x - transform.position.x, targetTransform.position.z - transform.position.z);
     }
 
     void LateUpdate()
@@ -58,7 +61,7 @@ public class Navigation : MonoBehaviour
         {
             if (point.w == 1) 
             {
-                Debug.DrawRay(lidar.transform.position, new Vector3(point.x, point.y, point.z) - lidar.transform.position, Color.red); // Draw rays for each hit point
+                //Debug.DrawRay(lidar.transform.position, new Vector3(point.x, point.y, point.z) - lidar.transform.position, Color.red); // Draw rays for each hit point
                 SetHitCell(new Vector2(point.x, point.z));
             }
         }
@@ -90,9 +93,17 @@ public class Navigation : MonoBehaviour
     /// Navigation Functions
     /// --------------------------------------------------
 
-    void FollowTarget(float angleTolerance, float distanceTolerance)
+    void FollowTarget(float angleTolerance, float distanceTolerance, Vector2 target)
     {
-        if (target.magnitude < distanceTolerance)
+
+        Vector2 targetVec = new Vector2(target.x - transform.position.x, target.y - transform.position.z);
+
+        Debug.Log("Target Vector: " + targetVec);
+
+        Debug.DrawRay(transform.position, new Vector3(targetVec.x, 0, targetVec.y), Color.green);
+
+
+        if (targetVec.magnitude < distanceTolerance)
         {
             motorDriver.SetRightSpeed(0f);
             motorDriver.SetLeftSpeed(0f);
@@ -100,7 +111,7 @@ public class Navigation : MonoBehaviour
         }
 
         Vector2 botDir = new Vector2(Mathf.Sin(transform.rotation.eulerAngles.y * Mathf.Deg2Rad), Mathf.Cos(transform.rotation.eulerAngles.y * Mathf.Deg2Rad));
-        Vector2 targetDir = target / target.magnitude;
+        Vector2 targetDir = targetVec / targetVec.magnitude;
         float D = botDir.x * targetDir.y - botDir.y * targetDir.x;
         float angleError = Mathf.Acos(botDir.x * targetDir.x + botDir.y * targetDir.y) * Mathf.Rad2Deg;
         
@@ -108,30 +119,62 @@ public class Navigation : MonoBehaviour
         {
             if (D > 0) // bot dir is to the right of target dir, have to turn left 
             {
-                motorDriver.SetRightSpeed(0.2f);
-                motorDriver.SetLeftSpeed(-0.2f);
+                motorDriver.SetRightSpeed(0.1f);
+                motorDriver.SetLeftSpeed(-0.1f);
             }
             else // bot dir is to the left of target dir, have to turn right 
             {
-                motorDriver.SetRightSpeed(-0.2f);
-                motorDriver.SetLeftSpeed(0.2f);
+                motorDriver.SetRightSpeed(-0.1f);
+                motorDriver.SetLeftSpeed(0.1f);
             }
         }
         else
         {
-            motorDriver.SetRightSpeed(1f);
-            motorDriver.SetLeftSpeed(1f);
+            motorDriver.SetRightSpeed(0.5f);
+            motorDriver.SetLeftSpeed(0.5f);
         }
         
     }
     
+    void FollowPath()
+    {
+        PathNode[] path = ShortestPath();
+
+        int nodeIndex = 0;
+
+        while (nodeIndex < path.Length - 1 &&
+                !IntersectsWithCellType(
+                    new Vector2(transform.position.x, transform.position.z), 
+                    chunkManager.GetWorldPositionOfCell(path[nodeIndex].X, path[nodeIndex].Y), 
+                    CellStatus.Unreachable))
+        {
+            nodeIndex++;
+            Debug.Log("Node index: " + nodeIndex + 
+            ", path length: " + path.Length + 
+            " Node Chunk Position: " + path[nodeIndex].X + ", " + path[nodeIndex].Y + 
+            " Node World Position: " + chunkManager.GetWorldPositionOfCell(path[nodeIndex].X, path[nodeIndex].Y).x + ", " + chunkManager.GetWorldPositionOfCell(path[nodeIndex].X, path[nodeIndex].Y).y + 
+            " Is intersecting: " + IntersectsWithCellType(new Vector2(transform.position.x, transform.position.z), chunkManager.GetWorldPositionOfCell(path[nodeIndex].X, path[nodeIndex].Y), CellStatus.Unreachable)
+            );
+        }
+
+        Vector2 target = chunkManager.GetWorldPositionOfCell(path[nodeIndex].X, path[nodeIndex].Y);
+
+        //Vector2 target = new Vector2(targetTransform.position.x, targetTransform.position.z);
+
+        Debug.DrawLine(new Vector3(target.x + 0.1f, 0, target.y + 0.1f), new Vector3(target.x + 0.1f, 0, target.y + 0.1f), Color.brown);
+
+        FollowTarget(1f, 0.1f, target);
+
+
+    }
+
     /// --------------------------------------------------
     /// Pathfinding
     /// --------------------------------------------------
 
     PathNode[] RetracePath(PathNode startPathNode, PathNode targetPathNode, Dictionary<PathNode, PathNode> pathDict)
     {
-        Debug.Log("Found Path!");
+        //Debug.Log("Found Path!");
 
         List<PathNode> path = new List<PathNode>();
 
@@ -171,8 +214,8 @@ public class Navigation : MonoBehaviour
 
         PathNode targetPathNode = new PathNode(Mathf.FloorToInt(targetTransform.position.x / cellSize), Mathf.FloorToInt(targetTransform.position.z / cellSize), 0);
 
-        Debug.Log("Start Pos: " + startPathNode.X + ", " + startPathNode.Y);
-        Debug.Log("Target Pos: " + targetPathNode.X + ", " + targetPathNode.Y);
+        //Debug.Log("Start Pos: " + startPathNode.X + ", " + startPathNode.Y);
+        //Debug.Log("Target Pos: " + targetPathNode.X + ", " + targetPathNode.Y);
 
         // Make nodes relative to global coordinates
 
@@ -229,4 +272,27 @@ public class Navigation : MonoBehaviour
         return new Vector2(targetTransform.position.x, targetTransform.position.z);
     }
 
+    public Vector2 GetBotPosition()
+    {
+        return new Vector2(transform.position.x, transform.position.z);
+    }
+
+    bool IntersectsWithCellType(Vector2 startPos, Vector2 endPos, CellStatus cellStatus)
+    {
+        Debug.DrawLine(new Vector3(startPos.x, 0, startPos.y), new Vector3(endPos.x, 0, endPos.y));
+
+        float lineLength = (endPos - startPos).magnitude;
+
+        Vector2 unitVec = (endPos - startPos) / lineLength * cellSize;
+
+        for (int i = 0; i < Mathf.FloorToInt(lineLength / cellSize); i++)
+        {
+            Vector2 checkVector = startPos + unitVec * i;
+            if (chunkManager.GetCellStatusAtWorldPosition(checkVector) == cellStatus)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 }

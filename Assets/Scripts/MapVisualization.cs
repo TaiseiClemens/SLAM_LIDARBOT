@@ -14,6 +14,7 @@ public class MapVisualization : MonoBehaviour
     [SerializeField] private Color emptyColor;
     [SerializeField] private Color pathColor;
     [SerializeField] private Color targetColor;
+    [SerializeField] private Color botColor;
     [SerializeField] private Color unreachableColor;
 
     private Texture2D texture;
@@ -142,6 +143,7 @@ public class MapVisualization : MonoBehaviour
 
 
         DrawPosition(navigation.GetTargetPosition(), targetColor);
+        DrawPosition(navigation.GetBotPosition(), botColor);
 
         texture.SetPixels32(pixelBuffer);
         texture.Apply();
