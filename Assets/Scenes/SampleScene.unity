@@ -1024,13 +1024,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e3e595063059a20cc96fa5184c2a61e8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MapVisualization
-  resolution: 256
+  resolution: 128
   distance: 32
   navigation: {fileID: 1341047118}
   botTransform: {fileID: 1341047117}
   hitColor: {r: 1, g: 0, b: 0, a: 0}
   emptyColor: {r: 0, g: 0, b: 0, a: 0}
-  pathColor: {r: 0, g: 0.027116776, b: 1, a: 0}
+  pathColor: {r: 1, g: 1, b: 1, a: 0}
 --- !u!64 &563839526
 MeshCollider:
   m_ObjectHideFlags: 0

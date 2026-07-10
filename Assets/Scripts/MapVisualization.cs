@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using System;
 using Unity.VisualScripting;
+using System.IO;
 
 public class MapVisualization : MonoBehaviour
 {
@@ -12,6 +13,7 @@ public class MapVisualization : MonoBehaviour
     [SerializeField] private Color hitColor;
     [SerializeField] private Color emptyColor;
     [SerializeField] private Color pathColor;
+    [SerializeField] private Color targetColor;
 
     private Texture2D texture;
     private Color32[] pixelBuffer;
@@ -130,19 +132,32 @@ public class MapVisualization : MonoBehaviour
             
             CellStatus cellStatus = chunkManager.GetCellStatusAtWorldPosition(new Vector2(node.X, node.Y));
 
-            float d_x = node.X - bot.x;
-            float d_y = node.Y - bot.y;
-            int x = (int)(d_x / cellSize) + resolution / 2;
-            int y = (int)(d_y / cellSize) + resolution / 2;
+            Vector2 nodePos = chunkManager.GetWorldPositionOfCell(node.X, node.Y);
 
-            if (x >= 0 && x < resolution && y >= 0 && y < resolution)
-            {
-                int index = y * resolution + x;
-                pixelBuffer[index] = pathColor;
-            }
-
+            DrawPosition(nodePos, pathColor);
         }
+
+
+        DrawPosition(navigation.GetTargetPosition(), targetColor);
+
         texture.SetPixels32(pixelBuffer);
         texture.Apply();
+    }
+
+    void DrawPosition(Vector2 position, Color color)
+    {
+        float cellSize = distance * 2f / resolution;
+        Vector2 bot = new Vector2(botTransform.position.x, botTransform.position.z);
+
+        float d_x = position.x - bot.x;
+        float d_y = position.y - bot.y;
+        int x = (int)(d_x / cellSize) + resolution / 2;
+        int y = (int)(d_y / cellSize) + resolution / 2;
+
+        if (x >= 0 && x < resolution && y >= 0 && y < resolution)
+        {
+            int index = y * resolution + x;
+            pixelBuffer[index] = color;
+        }
     }
 }

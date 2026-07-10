@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using Unity.Mathematics;
 using UnityEngine;
 
 public class ChunkManager
@@ -67,6 +68,11 @@ public class ChunkManager
         }
 
         return CellStatus.Unexplored;
+    }
+
+    public Vector2 GetWorldPositionOfCell(int X, int Y)
+    {
+        return new Vector2(X * _cellSize, Y * _cellSize);
     }
 
 }

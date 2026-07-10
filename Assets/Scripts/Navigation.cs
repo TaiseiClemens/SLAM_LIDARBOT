@@ -126,8 +126,6 @@ public class Navigation : MonoBehaviour
     /// Pathfinding
     /// --------------------------------------------------
 
-    
-
     PathNode[] RetracePath(PathNode startPathNode, PathNode targetPathNode, Dictionary<PathNode, PathNode> pathDict)
     {
         Debug.Log("Found Path!");
@@ -168,9 +166,9 @@ public class Navigation : MonoBehaviour
         Queue<PathNode> queue = new Queue<PathNode>();
         Dictionary<(int x, int y), bool> visited = new Dictionary<(int x, int y), bool>(); //bool[,] visited = new bool[1000, 1000]; // TODO: Add reallocation
 
-        PathNode startPathNode = new PathNode(Mathf.FloorToInt(transform.position.x / cellSize), Mathf.FloorToInt(transform.position.y / cellSize), 0);
+        PathNode startPathNode = new PathNode(Mathf.FloorToInt(transform.position.x / cellSize), Mathf.FloorToInt(transform.position.z / cellSize), 0);
 
-        PathNode targetPathNode = new PathNode(Mathf.FloorToInt(targetTransform.position.x / cellSize), Mathf.FloorToInt(targetTransform.position.y / cellSize), 0);
+        PathNode targetPathNode = new PathNode(Mathf.FloorToInt(targetTransform.position.x / cellSize), Mathf.FloorToInt(targetTransform.position.z / cellSize), 0);
 
         Debug.Log("Start Pos: " + startPathNode.X + ", " + startPathNode.Y);
         Debug.Log("Target Pos: " + targetPathNode.X + ", " + targetPathNode.Y);
@@ -218,4 +216,14 @@ public class Navigation : MonoBehaviour
 
         return null;   
     }
+
+    /// --------------------------------------------------
+    /// Utility
+    /// --------------------------------------------------
+
+    public Vector2 GetTargetPosition()
+    {
+        return new Vector2(targetTransform.position.x, targetTransform.position.z);
+    }
+
 }
