@@ -71,7 +71,9 @@ public class Navigation : MonoBehaviour
     void SetHitCell(Vector2 hitPos)
     {
         //chunkManager.SetCellStatusAtWorldPosition(hitPos, CellStatus.Wall);
-        chunkManager.SetCellWallAtWorldPosition(hitPos, botDimentions.x + botDimentions.y);
+
+        if (chunkManager.GetCellStatusAtWorldPosition(hitPos) != CellStatus.Wall)
+            chunkManager.SetCellWallAtWorldPosition(hitPos, botDimentions.x + botDimentions.y);
     }
 
     public CellStatus GetCellStatus(Vector2 pos)

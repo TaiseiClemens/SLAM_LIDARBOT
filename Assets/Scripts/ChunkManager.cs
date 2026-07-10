@@ -41,6 +41,8 @@ public class ChunkManager
         /// then get number of cells within by deviding r * 2 by cellSize
         /// use a nested for loop to loop through ever cell within that area
          
+        SetCellStatusAtWorldPosition(worldPos, CellStatus.Wall);
+
         float startX = worldPos.x - radius;
         float startY = worldPos.y + radius; 
 
@@ -50,13 +52,12 @@ public class ChunkManager
         {
             for (int j = 0; j < numCells; j++)
             {
-                if (GetCellStatusAtWorldPosition(worldPos) != CellStatus.Wall)
+                if (GetCellStatusAtWorldPosition(new Vector2(startX + i * _cellSize, startY - j * _cellSize)) != CellStatus.Wall)
                     SetCellStatusAtWorldPosition(new Vector2(startX + i * _cellSize, startY - j * _cellSize), CellStatus.Unreachable);
             }
         }
     }
 
-    
     public CellStatus GetCellStatusAtWorldPosition(Vector2 worldPos)
     {
         int globalCellX = Mathf.FloorToInt(worldPos.x / _cellSize);
