@@ -39,10 +39,12 @@ public class MapVisualization : MonoBehaviour
     // Update is called once per frame
     void LateUpdate()
     {
-        if (navigation.ShortestPath() != null)
-            UpdateMapWithPath();
-        else 
-            UpdateMap();
+        // if (navigation.ShortestPath() != null)
+        //     UpdateMapWithPath();
+        // else 
+        //     UpdateMap();
+
+        UpdateMapWithPath();
     }
 
 
@@ -109,7 +111,7 @@ public class MapVisualization : MonoBehaviour
         Vector2 bot = new Vector2(botTransform.position.x, botTransform.position.z);
 
         ChunkManager chunkManager = navigation.getChunkManager();
-        PathNode[] nodes = navigation.ShortestPath();
+        PathNode[] nodes = navigation.GetPath();
 
         System.Array.Fill(pixelBuffer, emptyColor);
 
