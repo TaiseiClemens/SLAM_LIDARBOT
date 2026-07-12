@@ -11,6 +11,7 @@ public class MapVisualization : MonoBehaviour
     [SerializeField] private Navigation navigation;
     [SerializeField] private Transform botTransform;
     [SerializeField] private Color hitColor;
+    [SerializeField] private Color unknownColor;
     [SerializeField] private Color emptyColor;
     [SerializeField] private Color pathColor;
     [SerializeField] private Color targetColor;
@@ -65,7 +66,7 @@ public class MapVisualization : MonoBehaviour
 
         ChunkManager chunkManager = navigation.getChunkManager();
 
-        System.Array.Fill(pixelBuffer, emptyColor);
+        System.Array.Fill(pixelBuffer, unknownColor);
 
 
         for (int i = 0; i < resolution; i++)
@@ -117,7 +118,7 @@ public class MapVisualization : MonoBehaviour
         if (nodes == null)
             return;
 
-        System.Array.Fill(pixelBuffer, emptyColor);
+        System.Array.Fill(pixelBuffer, unknownColor);
 
         
         for (int i = 0; i < resolution; i++)
@@ -129,9 +130,11 @@ public class MapVisualization : MonoBehaviour
 
                 CellStatus cellStatus = chunkManager.GetCellStatusAtWorldPosition(new Vector2(worldPosX, worldPosY));
 
-                int index = resolution * resolution - j * resolution + i;
+                int index = resolution * resolution - j * resolution + i - resolution;
 
-                if (cellStatus == CellStatus.Wall)
+                if (cellStatus == CellStatus.Empty)
+                    pixelBuffer[index] = emptyColor;
+                else if (cellStatus == CellStatus.Wall)
                     pixelBuffer[index] = hitColor;
                 else if (cellStatus == CellStatus.Unreachable)
                     pixelBuffer[index] = unreachableColor;

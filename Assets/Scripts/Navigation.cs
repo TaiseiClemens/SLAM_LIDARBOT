@@ -1,18 +1,16 @@
 using UnityEngine;
-using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using System;
-using UnityEngine.InputSystem.Controls;
-using System.Xml.Schema;
-using UnityEditor.Experimental.GraphView;
-using System.IO;
-using NUnit.Framework.Internal;
-
 
 public class Navigation : MonoBehaviour
 {
     
+    public enum NavigationState
+    {
+        GetToTarget,
+        Explore
+    }
+
     [Header("Modules")]
     [SerializeField] private MotorDriver motorDriver;
     [SerializeField] private Lidar lidar;
@@ -21,12 +19,13 @@ public class Navigation : MonoBehaviour
     [Header("Mapping Properties")]
     [SerializeField] private float cellSize;
     [SerializeField] private Vector2 botDimentions; // For marking unreachable points
-    private Dictionary<Vector2, CellStatus> hitCells = new Dictionary<Vector2, CellStatus>(100000) {}; // Cell position is top left corner
     private ChunkManager chunkManager;
 
     [Header("Navigation")]
+    [SerializeField] private NavigationState navigationState = NavigationState.GetToTarget;
     [SerializeField] private Transform targetTransform;
     private PathNode[] currentPath;
+    
     private bool mapChangedThisFrame;
 
 
@@ -55,11 +54,27 @@ public class Navigation : MonoBehaviour
                 SetHitCell(new Vector2(point.x, point.z));
             }
         }
-        if (mapChangedThisFrame)
+        FloodSeenCells(new Vector2(transform.position.x, transform.position.z), lidar.GetMaxDistance());
+        if (navigationState == NavigationState.GetToTarget)
         {
-            PathNode[] newPath = ShortestPath();
+            PathNode[] newPath = ShortestPath(new Vector2(targetTransform.position.x, targetTransform.position.z), true);
             if (newPath != null)
                 currentPath = newPath;
+        }
+        else if (navigationState == NavigationState.Explore)
+        {
+            
+            PathNode[] newPath = ShortestPath(PathNodeToVec2(NearestUnexploredCell(Vec3ToPathNode(transform.position))));
+            if (newPath != null)
+            {
+                currentPath = newPath;
+            }
+            else
+            {
+                motorDriver.SetRightSpeed(0f);
+                motorDriver.SetLeftSpeed(0f);
+                Debug.Log("Search Ended!");
+            }
         }
     }
 
@@ -73,10 +88,50 @@ public class Navigation : MonoBehaviour
 
         if (chunkManager.GetCellStatusAtWorldPosition(hitPos) != CellStatus.Wall)
         {
-            chunkManager.SetCellWallAtWorldPosition(hitPos, botDimentions.y, 0f, 1f);
+            chunkManager.SetCellWallAtWorldPosition(hitPos, botDimentions.y, .5f, .5f);
             mapChangedThisFrame = true;
         }
 
+    }
+
+    void FloodSeenCells(Vector2 selfPos, float visionRadius)
+    {
+        int searchesLeft = 1000000;
+
+        PathNode startPathNode = Vec2ToPathNode(selfPos);
+
+        Func<PathNode, bool> allowedBlock = node => (PathNodeToVec2(node) - PathNodeToVec2(startPathNode)).magnitude < visionRadius &&
+                                                    chunkManager.GetCellStatusAtCellPosition(node.X, node.Y) != CellStatus.Wall &&
+                                                    chunkManager.GetCellStatusAtCellPosition(node.X, node.Y) != CellStatus.VisibleBufferZone &&
+                                                    chunkManager.GetCellStatusAtCellPosition(node.X, node.Y) != CellStatus.InvisibleBufferZone &&
+                                                    chunkManager.GetCellStatusAtCellPosition(node.X, node.Y) != CellStatus.VisibleBufferZone;
+
+        Dictionary<PathNode, PathNode> path = new Dictionary<PathNode, PathNode>(); 
+        Queue<PathNode> queue = new Queue<PathNode>();
+        Dictionary<(int x, int y), bool> visited = new Dictionary<(int x, int y), bool>();
+
+        queue.Enqueue(startPathNode);
+
+        while (queue.Count > 0 && searchesLeft > 0)
+        {
+            searchesLeft--;
+            PathNode current = queue.Dequeue();
+
+            visited[(current.X, current.Y)] = true;
+            chunkManager.SetCellStatusAtCellPosition(current.X, current.Y, CellStatus.Empty);
+
+            foreach (PathNode neighbor in GetNeighbors(current))
+            {
+                //Debug.Log("Neighbor Position: " + neighbor.X + ", " + neighbor.Y);
+                if (!visited.ContainsKey((neighbor.X, neighbor.Y)) && allowedBlock(neighbor))
+                {
+                    visited[(neighbor.X, neighbor.Y)] = true;
+                    chunkManager.SetCellStatusAtCellPosition(neighbor.X, neighbor.Y, CellStatus.Empty);
+                    path[neighbor] = current;  // Set neighbor parent to self
+                    queue.Enqueue(neighbor); 
+                }
+            }
+        }
     }
 
     public CellStatus GetCellStatus(Vector2 pos)
@@ -122,23 +177,26 @@ public class Navigation : MonoBehaviour
             
             //float turnSpeed = angleError/180;
             float turnSpeed = 0.1f;
-            if (false && angleError > angleTolerance * 8)
+
+            //Debug.Log(angleError);
+
+            if (angleError > 90f)
             {
-                turnSpeed = 0.1f;
+                turnSpeed = 1f;
                 if (D > 0) // bot dir is to the right of target dir, have to turn left 
                 {
                     motorDriver.SetRightSpeed(turnSpeed);
-                    motorDriver.SetLeftSpeed(-turnSpeed);
+                    motorDriver.SetLeftSpeed(0.01f);
                 }
                 else // bot dir is to the left of target dir, have to turn right 
                 {
-                    motorDriver.SetRightSpeed(-turnSpeed);
+                    motorDriver.SetRightSpeed(0.01f);
                     motorDriver.SetLeftSpeed(turnSpeed);
                 }
             }
             else
             {
-                turnSpeed = 0.2f;
+                turnSpeed = 0.4f;
                 if (D > 0) // bot dir is to the right of target dir, have to turn left 
                 {
                     motorDriver.SetRightSpeed(baseSpeed);
@@ -184,7 +242,10 @@ public class Navigation : MonoBehaviour
         while (nodeIndex < corners.Length &&
                 !IntersectsWithCellType(new Vector2(transform.position.x, transform.position.z), 
                             chunkManager.GetWorldPositionOfCell(corners[nodeIndex].X, corners[nodeIndex].Y), 
-                            CellStatus.Unreachable))
+                            CellStatus.Unreachable) && 
+                !IntersectsWithCellType(new Vector2(transform.position.x, transform.position.z), 
+                            chunkManager.GetWorldPositionOfCell(corners[nodeIndex].X, corners[nodeIndex].Y), 
+                            CellStatus.InvisibleBufferZone))
         {
             nodeIndex++;
             // Debug.Log("Node index: " + nodeIndex + 
@@ -241,7 +302,7 @@ public class Navigation : MonoBehaviour
         };
     }
 
-    public PathNode[] ShortestPath()
+    public PathNode[] ShortestPath(Vector2 target, bool raiseWhenPathNotFound = false)
     {
         int searchesLeft = 1000000;
 
@@ -249,9 +310,9 @@ public class Navigation : MonoBehaviour
         Queue<PathNode> queue = new Queue<PathNode>();
         Dictionary<(int x, int y), bool> visited = new Dictionary<(int x, int y), bool>();
 
-        PathNode startPathNode = new PathNode(Mathf.FloorToInt(transform.position.x / cellSize), Mathf.FloorToInt(transform.position.z / cellSize), 0);
+        PathNode startPathNode = Vec3ToPathNode(transform.position);
 
-        PathNode targetPathNode = new PathNode(Mathf.FloorToInt(targetTransform.position.x / cellSize), Mathf.FloorToInt(targetTransform.position.z / cellSize), 0);
+        PathNode targetPathNode = Vec2ToPathNode(target);
 
         if (chunkManager.GetCellStatusAtCellPosition(startPathNode.X, startPathNode.Y) == CellStatus.VisibleBufferZone || 
             chunkManager.GetCellStatusAtCellPosition(startPathNode.X, startPathNode.Y) == CellStatus.InvisibleBufferZone)
@@ -299,7 +360,8 @@ public class Navigation : MonoBehaviour
 
         if (queue.Count <= 0)
         {
-            Debug.LogError("Did not find a path");
+            if (raiseWhenPathNotFound)
+                Debug.LogError("Did not find a path");
         } 
         else
         {
@@ -310,6 +372,21 @@ public class Navigation : MonoBehaviour
     }
 
     PathNode NearestEmptyCell(PathNode startNode)
+    {
+        Func<PathNode, bool> targetCondition = node => chunkManager.GetCellStatusAtCellPosition(node.X, node.Y) == CellStatus.Empty; 
+        Func<PathNode, bool> allowedBlock = node => chunkManager.GetCellStatusAtCellPosition(node.X, node.Y) != CellStatus.Wall && 
+                                                    chunkManager.GetCellStatusAtCellPosition(node.X, node.Y) != CellStatus.Unreachable; 
+        PathNode[] pathToCell = PathToTarget
+        (
+            startNode,
+            targetCondition,
+            allowedBlock
+        );
+
+        return pathToCell[pathToCell.Length-1];
+    }
+
+    PathNode NearestUnexploredCell(PathNode startNode)
     {
         Func<PathNode, bool> targetCondition = node => chunkManager.GetCellStatusAtCellPosition(node.X, node.Y) == CellStatus.Unexplored; 
         Func<PathNode, bool> allowedBlock = node => chunkManager.GetCellStatusAtCellPosition(node.X, node.Y) != CellStatus.Wall && 
@@ -324,7 +401,7 @@ public class Navigation : MonoBehaviour
         return pathToCell[pathToCell.Length-1];
     }
 
-    PathNode[] PathToTarget(PathNode startPathNode, Func<PathNode, bool> targetCondition, Func<PathNode, bool> allowedBlock)
+    PathNode[] PathToTarget(PathNode startPathNode, Func<PathNode, bool> targetCondition, Func<PathNode, bool> allowedBlock, bool raiseWhenPathNotFound = false)
     {
 
         /// targetCondition is a function which takes in a path node and returns if that path node is a target
@@ -370,7 +447,8 @@ public class Navigation : MonoBehaviour
 
         if (queue.Count <= 0)
         {
-            Debug.LogError("Did not find a path");
+            if (raiseWhenPathNotFound)
+                Debug.LogError("Did not find a path");
         } 
         else
         {
@@ -400,9 +478,9 @@ public class Navigation : MonoBehaviour
 
         float lineLength = (endPos - startPos).magnitude;
 
-        Vector2 unitVec = (endPos - startPos) / lineLength * cellSize;
+        Vector2 unitVec = (endPos - startPos) / lineLength * cellSize * 0.2f;
 
-        for (int i = 0; i < Mathf.FloorToInt(lineLength / cellSize); i++)
+        for (int i = 0; i < Mathf.FloorToInt(lineLength / cellSize) * 5; i++)
         {
             Vector2 checkVector = startPos + unitVec * i;
             if (chunkManager.GetCellStatusAtWorldPosition(checkVector) == cellStatus)
@@ -412,26 +490,7 @@ public class Navigation : MonoBehaviour
         }
         return false;
     }
-    bool IntersectsWith2CellTypes(Vector2 startPos, Vector2 endPos, CellStatus cellStatus1, CellStatus cellStatus2)
-    {
-        Debug.DrawLine(new Vector3(startPos.x, 0, startPos.y), new Vector3(endPos.x, 0, endPos.y));
-
-        float lineLength = (endPos - startPos).magnitude;
-
-        Vector2 unitVec = (endPos - startPos) / lineLength * cellSize;
-
-        for (int i = 0; i < Mathf.FloorToInt(lineLength / cellSize); i++)
-        {
-            Vector2 checkVector = startPos + unitVec * i;
-            if (chunkManager.GetCellStatusAtWorldPosition(checkVector) == cellStatus1 || 
-                chunkManager.GetCellStatusAtWorldPosition(checkVector) == cellStatus2)
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
+    
     public PathNode[] GetPath()
     {
         return currentPath;
@@ -458,5 +517,20 @@ public class Navigation : MonoBehaviour
         }
         corners.Add(path[path.Length-1]);
         return corners.ToArray();
+    }
+
+    PathNode Vec2ToPathNode(Vector2 vec)
+    {
+        return new PathNode(Mathf.FloorToInt(vec.x / cellSize), Mathf.FloorToInt(vec.y / cellSize), 0);
+    }
+
+    PathNode Vec3ToPathNode(Vector3 vec)
+    {
+        return new PathNode(Mathf.FloorToInt(vec.x / cellSize), Mathf.FloorToInt(vec.z / cellSize), 0);
+    }
+
+    Vector2 PathNodeToVec2(PathNode node)
+    {
+        return chunkManager.GetWorldPositionOfCell(node.X, node.Y);
     }
 }

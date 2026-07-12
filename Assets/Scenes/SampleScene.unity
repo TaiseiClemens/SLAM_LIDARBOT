@@ -1029,6 +1029,7 @@ MonoBehaviour:
   navigation: {fileID: 1341047118}
   botTransform: {fileID: 1341047117}
   hitColor: {r: 1, g: 0, b: 0, a: 0}
+  unknownColor: {r: 0.5450981, g: 0, b: 0.5450981, a: 1}
   emptyColor: {r: 0, g: 0, b: 0, a: 0}
   pathColor: {r: 1, g: 1, b: 1, a: 0}
   targetColor: {r: 0, g: 1, b: 0, a: 0}
@@ -2196,6 +2197,7 @@ MonoBehaviour:
   lidarPointCloud: {fileID: 923005494}
   cellSize: 0.25
   botDimentions: {x: 0.5, y: 0.75}
+  navigationState: 1
   targetTransform: {fileID: 1682002238}
 --- !u!114 &1341047119
 MonoBehaviour:
@@ -2209,8 +2211,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0a080f5d29c9a656b21de6279a72f71, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MotorDriver
-  l_maxSpeed: 100
-  r_maxSpeed: 100
+  l_maxSpeed: 150
+  r_maxSpeed: 150
   innerDistance: 1
   rb: {fileID: 1341047113}
 --- !u!114 &1341047120

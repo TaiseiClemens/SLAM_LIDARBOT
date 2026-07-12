@@ -36,6 +36,24 @@ public class ChunkManager
         chunk.SetValue(localCellX, localCellY, status);
     }
 
+    public void SetCellStatusAtCellPosition(int X, int Y, CellStatus status)
+    {
+        int chunkX = Mathf.FloorToInt((float)X / GridChunk.chunkSize);
+        int chunkY = Mathf.FloorToInt((float)Y / GridChunk.chunkSize);
+        ChunkKey key = new ChunkKey(chunkX, chunkY);
+
+        if (!_chunks.TryGetValue(key, out GridChunk chunk))
+        {
+            chunk = new GridChunk();
+            _chunks.Add(key, chunk);
+        }
+
+        int localCellX = X - (chunkX * GridChunk.chunkSize);
+        int localCellY = Y - (chunkY * GridChunk.chunkSize);
+        chunk.SetValue(localCellX, localCellY, status);
+    }
+
+
     public void SetCellWallAtWorldPosition(Vector2 worldPos, float radius, float invisibleBufferSize, float visibleBufferSize)
     {
         /// width of square will be r * 2 at positions worldPos.x - r and worldPos.x + r

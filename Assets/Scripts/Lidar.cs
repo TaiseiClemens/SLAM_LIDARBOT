@@ -71,4 +71,9 @@ public class Lidar : MonoBehaviour
         return cycleScanPoints;
     }
 
+    public float GetMaxDistance()
+    {
+        return maxDistance;
+    }
+
 }
