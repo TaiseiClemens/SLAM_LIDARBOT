@@ -114,6 +114,9 @@ public class MapVisualization : MonoBehaviour
         ChunkManager chunkManager = navigation.getChunkManager();
         PathNode[] nodes = navigation.GetPath();
 
+        if (nodes == null)
+            return;
+
         System.Array.Fill(pixelBuffer, emptyColor);
 
         

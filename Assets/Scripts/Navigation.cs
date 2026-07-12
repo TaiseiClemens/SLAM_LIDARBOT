@@ -7,6 +7,7 @@ using UnityEngine.InputSystem.Controls;
 using System.Xml.Schema;
 using UnityEditor.Experimental.GraphView;
 using System.IO;
+using NUnit.Framework.Internal;
 
 
 public class Navigation : MonoBehaviour
@@ -27,36 +28,19 @@ public class Navigation : MonoBehaviour
     [SerializeField] private Transform targetTransform;
     private PathNode[] currentPath;
     private bool mapChangedThisFrame;
-    //private Vector2 target;
 
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        //StartCoroutine(MainLoop());
         chunkManager = new ChunkManager(cellSize);
-    }
-
-    IEnumerator MainLoop()
-    {
-        while (true)
-        {
-
-            //FollowTarget(1f, 0.25f, target);
-
-            FollowPath(currentPath);
-
-            //yield return new WaitForSeconds(1f);
-            yield return null;
-        }
     }
 
     void Update()
     {
         mapChangedThisFrame = false;
         
-        FollowPath(currentPath);
-        //target = new Vector2(targetTransform.position.x - transform.position.x, targetTransform.position.z - transform.position.z);
+        if (currentPath != null)
+            FollowPath(currentPath, 2f, 0.1f);
     }
 
     void LateUpdate()
@@ -89,7 +73,7 @@ public class Navigation : MonoBehaviour
 
         if (chunkManager.GetCellStatusAtWorldPosition(hitPos) != CellStatus.Wall)
         {
-            chunkManager.SetCellWallAtWorldPosition(hitPos, botDimentions.y, 1f, 0.5f);
+            chunkManager.SetCellWallAtWorldPosition(hitPos, botDimentions.y, 0f, 1f);
             mapChangedThisFrame = true;
         }
 
@@ -109,12 +93,14 @@ public class Navigation : MonoBehaviour
     /// Navigation Functions
     /// --------------------------------------------------
 
-    void FollowTarget(float angleTolerance, float distanceTolerance, Vector2 target, float baseSpeed = 0.8f)
+    
+    bool FollowTarget(float angleTolerance, float distanceTolerance, Vector2 target, float baseSpeed = 0.8f)
     {
+        // Returns true if moving, if on target returns false
 
         Vector2 targetVec = new Vector2(target.x - transform.position.x, target.y - transform.position.z);
 
-        Debug.Log("Target Vector: " + targetVec);
+        // Debug.Log("Target Vector: " + targetVec);
 
         Debug.DrawRay(transform.position, new Vector3(targetVec.x, 0, targetVec.y), Color.green);
 
@@ -123,7 +109,7 @@ public class Navigation : MonoBehaviour
         {
             motorDriver.SetRightSpeed(0f);
             motorDriver.SetLeftSpeed(0f);
-            return;
+            return false;
         }
 
         Vector2 botDir = new Vector2(Mathf.Sin(transform.rotation.eulerAngles.y * Mathf.Deg2Rad), Mathf.Cos(transform.rotation.eulerAngles.y * Mathf.Deg2Rad));
@@ -170,10 +156,10 @@ public class Navigation : MonoBehaviour
             motorDriver.SetRightSpeed(baseSpeed);
             motorDriver.SetLeftSpeed(baseSpeed);
         }
-        
+        return true;
     }
     
-    void FollowPath(PathNode[] path)
+    void FollowPath(PathNode[] path, float angleTolerance, float distanceTolerance)
     {
 
         // if (chunkManager.GetCellStatusAtWorldPosition(new Vector2(transform.position.x, transform.position.z)) == CellStatus.BufferZone)
@@ -187,22 +173,18 @@ public class Navigation : MonoBehaviour
 
         
 
-        /// Ok... this is quite the piece of code. To give a rundown, when the bot is outside of the invisible buffer zone then all is normal, but when 
-        /// it is inside of the invisible buffer zone, which it is not able to see through, it then goes into the "get out of here quick" mode which does
-        /// not look very good. So I was thinking that only when it is inside of the invisible buffer zone is it able to see through the invisible buffer zone.
-        /// The hope is that it tries to avoid it, but when it inevitably enters the invisible buffer zone at a corner, it is still able to navigate through it. 
-        /// Now I can imagine that for really long corridors this still may not be enough, but until I think of a better way to follow the path this is going 
-        /// to be how it is.  
+        /// First we find all the corners in the path
+        /// Then we find the furthest corner that the bot can see
+        /// The last node will also be considered a corner
+        
+        PathNode[] corners = GetPathCorners(path);
 
-        while (nodeIndex < path.Length - 1 &&
-                !(chunkManager.GetCellStatusAtWorldPosition(new Vector2(transform.position.x, transform.position.z)) != CellStatus.InvisibleBufferZone ?
-                IntersectsWith2CellTypes(
-                            new Vector2(transform.position.x, transform.position.z), 
-                            chunkManager.GetWorldPositionOfCell(path[nodeIndex].X, path[nodeIndex].Y), 
-                            CellStatus.Unreachable, CellStatus.InvisibleBufferZone) :
-                IntersectsWithCellType(new Vector2(transform.position.x, transform.position.z), 
-                            chunkManager.GetWorldPositionOfCell(path[nodeIndex].X, path[nodeIndex].Y), 
-                            CellStatus.Unreachable)))
+        
+
+        while (nodeIndex < corners.Length &&
+                !IntersectsWithCellType(new Vector2(transform.position.x, transform.position.z), 
+                            chunkManager.GetWorldPositionOfCell(corners[nodeIndex].X, corners[nodeIndex].Y), 
+                            CellStatus.Unreachable))
         {
             nodeIndex++;
             // Debug.Log("Node index: " + nodeIndex + 
@@ -213,13 +195,14 @@ public class Navigation : MonoBehaviour
             // );
         }
 
-        Vector2 target = chunkManager.GetWorldPositionOfCell(path[nodeIndex].X, path[nodeIndex].Y);
+        
+        Vector2 target = chunkManager.GetWorldPositionOfCell(corners[nodeIndex-1].X, corners[nodeIndex-1].Y);
 
         //Vector2 target = new Vector2(targetTransform.position.x, targetTransform.position.z);
 
         Debug.DrawLine(new Vector3(target.x + 0.1f, 0, target.y + 0.1f), new Vector3(target.x + 0.1f, 0, target.y + 0.1f), Color.brown);
 
-        FollowTarget(2f, 0.1f, target);
+        FollowTarget(angleTolerance, distanceTolerance, target);
 
 
     }
@@ -452,5 +435,28 @@ public class Navigation : MonoBehaviour
     public PathNode[] GetPath()
     {
         return currentPath;
+    }
+
+    bool IsCorner(PathNode centerNode, PathNode adjacentNode, PathNode otherAdjacentNode)
+    {
+        bool isHorizontal = adjacentNode.X == centerNode.X;
+        return !((adjacentNode.X == centerNode.X && otherAdjacentNode.X == centerNode.X) || 
+                (adjacentNode.Y == centerNode.Y && otherAdjacentNode.Y == centerNode.Y));
+    }
+    
+    PathNode[] GetPathCorners(PathNode[] path)
+    {
+        if (path.Length < 3)
+            return new PathNode[1] {path[path.Length - 1]};
+        
+        List<PathNode> corners = new List<PathNode>();
+
+        for (int i = 1; i < path.Length - 1; i++)
+        {
+            if (IsCorner(path[i], path[i-1], path[i+1]))
+                corners.Add(path[i]);
+        }
+        corners.Add(path[path.Length-1]);
+        return corners.ToArray();
     }
 }
