@@ -89,7 +89,7 @@ public class Navigation : MonoBehaviour
 
         if (chunkManager.GetCellStatusAtWorldPosition(hitPos) != CellStatus.Wall)
         {
-            chunkManager.SetCellWallAtWorldPosition(hitPos, botDimentions.y, 1f);
+            chunkManager.SetCellWallAtWorldPosition(hitPos, botDimentions.y, 1f, 0.5f);
             mapChangedThisFrame = true;
         }
 
@@ -185,19 +185,32 @@ public class Navigation : MonoBehaviour
 
         int nodeIndex = 0;
 
+        
+
+        /// Ok... this is quite the piece of code. To give a rundown, when the bot is outside of the invisible buffer zone then all is normal, but when 
+        /// it is inside of the invisible buffer zone, which it is not able to see through, it then goes into the "get out of here quick" mode which does
+        /// not look very good. So I was thinking that only when it is inside of the invisible buffer zone is it able to see through the invisible buffer zone.
+        /// The hope is that it tries to avoid it, but when it inevitably enters the invisible buffer zone at a corner, it is still able to navigate through it. 
+        /// Now I can imagine that for really long corridors this still may not be enough, but until I think of a better way to follow the path this is going 
+        /// to be how it is.  
+
         while (nodeIndex < path.Length - 1 &&
-                !IntersectsWithCellType(
-                    new Vector2(transform.position.x, transform.position.z), 
-                    chunkManager.GetWorldPositionOfCell(path[nodeIndex].X, path[nodeIndex].Y), 
-                    CellStatus.Unreachable))
+                !(chunkManager.GetCellStatusAtWorldPosition(new Vector2(transform.position.x, transform.position.z)) != CellStatus.InvisibleBufferZone ?
+                IntersectsWith2CellTypes(
+                            new Vector2(transform.position.x, transform.position.z), 
+                            chunkManager.GetWorldPositionOfCell(path[nodeIndex].X, path[nodeIndex].Y), 
+                            CellStatus.Unreachable, CellStatus.InvisibleBufferZone) :
+                IntersectsWithCellType(new Vector2(transform.position.x, transform.position.z), 
+                            chunkManager.GetWorldPositionOfCell(path[nodeIndex].X, path[nodeIndex].Y), 
+                            CellStatus.Unreachable)))
         {
             nodeIndex++;
-            Debug.Log("Node index: " + nodeIndex + 
-            ", path length: " + path.Length + 
-            " Node Chunk Position: " + path[nodeIndex].X + ", " + path[nodeIndex].Y + 
-            " Node World Position: " + chunkManager.GetWorldPositionOfCell(path[nodeIndex].X, path[nodeIndex].Y).x + ", " + chunkManager.GetWorldPositionOfCell(path[nodeIndex].X, path[nodeIndex].Y).y + 
-            " Is intersecting: " + IntersectsWithCellType(new Vector2(transform.position.x, transform.position.z), chunkManager.GetWorldPositionOfCell(path[nodeIndex].X, path[nodeIndex].Y), CellStatus.Unreachable)
-            );
+            // Debug.Log("Node index: " + nodeIndex + 
+            // ", path length: " + path.Length + 
+            // " Node Chunk Position: " + path[nodeIndex].X + ", " + path[nodeIndex].Y + 
+            // " Node World Position: " + chunkManager.GetWorldPositionOfCell(path[nodeIndex].X, path[nodeIndex].Y).x + ", " + chunkManager.GetWorldPositionOfCell(path[nodeIndex].X, path[nodeIndex].Y).y + 
+            // " Is intersecting: " + IntersectsWithCellType(new Vector2(transform.position.x, transform.position.z), chunkManager.GetWorldPositionOfCell(path[nodeIndex].X, path[nodeIndex].Y), CellStatus.Unreachable)
+            // );
         }
 
         Vector2 target = chunkManager.GetWorldPositionOfCell(path[nodeIndex].X, path[nodeIndex].Y);
@@ -257,7 +270,8 @@ public class Navigation : MonoBehaviour
 
         PathNode targetPathNode = new PathNode(Mathf.FloorToInt(targetTransform.position.x / cellSize), Mathf.FloorToInt(targetTransform.position.z / cellSize), 0);
 
-        if (chunkManager.GetCellStatusAtCellPosition(startPathNode.X, startPathNode.Y) == CellStatus.BufferZone)
+        if (chunkManager.GetCellStatusAtCellPosition(startPathNode.X, startPathNode.Y) == CellStatus.VisibleBufferZone || 
+            chunkManager.GetCellStatusAtCellPosition(startPathNode.X, startPathNode.Y) == CellStatus.InvisibleBufferZone)
         {
             startPathNode = NearestEmptyCell(startPathNode);
         }
@@ -289,7 +303,8 @@ public class Navigation : MonoBehaviour
                 //Debug.Log("Neighbor Position: " + neighbor.X + ", " + neighbor.Y);
                 if (!visited.ContainsKey((neighbor.X, neighbor.Y)) // if has not visited
                     && chunkManager.GetCellStatusAtCellPosition(neighbor.X, neighbor.Y) != CellStatus.Unreachable
-                    && chunkManager.GetCellStatusAtCellPosition(neighbor.X, neighbor.Y) != CellStatus.BufferZone
+                    && chunkManager.GetCellStatusAtCellPosition(neighbor.X, neighbor.Y) != CellStatus.VisibleBufferZone
+                    && chunkManager.GetCellStatusAtCellPosition(neighbor.X, neighbor.Y) != CellStatus.InvisibleBufferZone
                     && chunkManager.GetCellStatusAtCellPosition(neighbor.X, neighbor.Y) != CellStatus.Wall)
                 {
                     visited[(neighbor.X, neighbor.Y)] = true;
@@ -408,6 +423,25 @@ public class Navigation : MonoBehaviour
         {
             Vector2 checkVector = startPos + unitVec * i;
             if (chunkManager.GetCellStatusAtWorldPosition(checkVector) == cellStatus)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+    bool IntersectsWith2CellTypes(Vector2 startPos, Vector2 endPos, CellStatus cellStatus1, CellStatus cellStatus2)
+    {
+        Debug.DrawLine(new Vector3(startPos.x, 0, startPos.y), new Vector3(endPos.x, 0, endPos.y));
+
+        float lineLength = (endPos - startPos).magnitude;
+
+        Vector2 unitVec = (endPos - startPos) / lineLength * cellSize;
+
+        for (int i = 0; i < Mathf.FloorToInt(lineLength / cellSize); i++)
+        {
+            Vector2 checkVector = startPos + unitVec * i;
+            if (chunkManager.GetCellStatusAtWorldPosition(checkVector) == cellStatus1 || 
+                chunkManager.GetCellStatusAtWorldPosition(checkVector) == cellStatus2)
             {
                 return true;
             }

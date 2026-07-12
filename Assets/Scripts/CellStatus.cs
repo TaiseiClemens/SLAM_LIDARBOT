@@ -2,7 +2,9 @@ public enum CellStatus
 {
     Unexplored,
     Wall,
-    //Empty,
+    Empty,
     Unreachable,
-    BufferZone
+    VisibleBufferZone,
+    InvisibleBufferZone
+    
 }

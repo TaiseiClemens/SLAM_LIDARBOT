@@ -36,7 +36,7 @@ public class ChunkManager
         chunk.SetValue(localCellX, localCellY, status);
     }
 
-    public void SetCellWallAtWorldPosition(Vector2 worldPos, float radius, float bufferSize)
+    public void SetCellWallAtWorldPosition(Vector2 worldPos, float radius, float invisibleBufferSize, float visibleBufferSize)
     {
         /// width of square will be r * 2 at positions worldPos.x - r and worldPos.x + r
         /// then get number of cells within by deviding r * 2 by cellSize
@@ -44,10 +44,12 @@ public class ChunkManager
          
         SetCellStatusAtWorldPosition(worldPos, CellStatus.Wall);
 
-        int bufferRadius = Mathf.FloorToInt(bufferSize / _cellSize);
+        int invisibleBufferRadius = Mathf.FloorToInt(invisibleBufferSize / _cellSize);
+        int visibleBufferRadius = Mathf.FloorToInt(visibleBufferSize / _cellSize);
+        int bufferRadius = invisibleBufferRadius + visibleBufferRadius;
 
-        float startX = worldPos.x - radius - bufferSize;
-        float startY = worldPos.y + radius + bufferSize; 
+        float startX = worldPos.x - radius - invisibleBufferSize - visibleBufferSize;
+        float startY = worldPos.y + radius + invisibleBufferSize + visibleBufferSize; 
 
         int numCells = Mathf.FloorToInt(radius * 2 / _cellSize);
 
@@ -61,11 +63,20 @@ public class ChunkManager
                     if (GetCellStatusAtWorldPosition(new Vector2(startX + i * _cellSize, startY - j * _cellSize)) != CellStatus.Wall)
                         SetCellStatusAtWorldPosition(new Vector2(startX + i * _cellSize, startY - j * _cellSize), CellStatus.Unreachable);
                 }
-                else
+                else if(
+                    i > visibleBufferRadius && i < numCells + bufferRadius + invisibleBufferRadius && 
+                    j > visibleBufferRadius && j < numCells + bufferRadius + invisibleBufferRadius)
                 {
                     if (GetCellStatusAtWorldPosition(new Vector2(startX + i * _cellSize, startY - j * _cellSize)) != CellStatus.Wall &&
                         GetCellStatusAtWorldPosition(new Vector2(startX + i * _cellSize, startY - j * _cellSize)) != CellStatus.Unreachable)
-                        SetCellStatusAtWorldPosition(new Vector2(startX + i * _cellSize, startY - j * _cellSize), CellStatus.BufferZone);
+                        SetCellStatusAtWorldPosition(new Vector2(startX + i * _cellSize, startY - j * _cellSize), CellStatus.InvisibleBufferZone);
+                }
+                else
+                {
+                    if (GetCellStatusAtWorldPosition(new Vector2(startX + i * _cellSize, startY - j * _cellSize)) != CellStatus.Wall &&
+                        GetCellStatusAtWorldPosition(new Vector2(startX + i * _cellSize, startY - j * _cellSize)) != CellStatus.Unreachable &&
+                        GetCellStatusAtWorldPosition(new Vector2(startX + i * _cellSize, startY - j * _cellSize)) != CellStatus.InvisibleBufferZone)
+                        SetCellStatusAtWorldPosition(new Vector2(startX + i * _cellSize, startY - j * _cellSize), CellStatus.VisibleBufferZone);
                 }
                 
             }

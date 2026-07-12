@@ -1033,8 +1033,9 @@ MonoBehaviour:
   pathColor: {r: 1, g: 1, b: 1, a: 0}
   targetColor: {r: 0, g: 1, b: 0, a: 0}
   botColor: {r: 0, g: 1, b: 0, a: 1}
-  unreachableColor: {r: 0.4292453, g: 0.4292453, b: 1, a: 0}
-  bufferColor: {r: 0, g: 1, b: 1, a: 1}
+  unreachableColor: {r: 0, g: 0, b: 1, a: 1}
+  visibleBufferColor: {r: 0, g: 1, b: 1, a: 1}
+  invisibleBufferColor: {r: 0.254902, g: 0.4117647, b: 0.882353, a: 1}
 --- !u!64 &563839526
 MeshCollider:
   m_ObjectHideFlags: 0
